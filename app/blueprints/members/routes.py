@@ -3,12 +3,13 @@ from flask import request,jsonify
 from marshmallow import ValidationError
 from sqlalchemy import select
 from app.models import Member, db
+from . import members_bp
 
 # -------Routes--------
 
 
 # Create a new member
-@app.route("/members", methods=["POST"])
+@members_bp.route("/", methods=["POST"])
 def create_member():
     try:
         member_data = member_schema.load(
@@ -33,7 +34,7 @@ def create_member():
 
 
 # GET ALL MEMBERS
-@app.route("/members", methods=["GET"])
+@members_bp.route("/", methods=["GET"])
 def get_members():
     query = select(Member)  # query to select all members
     members = (
@@ -44,7 +45,7 @@ def get_members():
 
 
 # GET SPECIFIC MEMBERS
-@app.route("/members/<int:member_id>", methods=["GET"])
+@members_bp.route("/<int:member_id>", methods=["GET"])
 def get_member(member_id):
     member = db.session.get(Member, member_id)
 
@@ -54,7 +55,7 @@ def get_member(member_id):
 
 
 # UPDATE SPECIFIC USER
-@app.route("/members/<int:member_id>", methods=["PUT"])
+@members_bp.route("/<int:member_id>", methods=["PUT"])
 def update_member(member_id):
     member = db.session.get(Member, member_id)
 
@@ -76,7 +77,7 @@ def update_member(member_id):
 
 
 # DELETE SPECIFIC USER
-@app.route("/members/<int:member_id>", methods=["DELETE"])
+@members_bp.route("/<int:member_id>", methods=["DELETE"])
 def delete_member(member_id):
     member = db.session.get(Member, member_id)
 
