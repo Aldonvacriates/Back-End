@@ -5,7 +5,7 @@
 │   ├── extensions.py
 │   ├── /blueprints
 │		│		├──/user
-│		│				├──__init__.py  - Initializt User Blueprint
+│		│				├──__init__.py  - Initialize User Blueprint
 │		│				├── routes.py  - Create User Controllers/routes
 │		│				└── userSchemas.py
 │   └── models.py

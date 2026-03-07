@@ -1,0 +1,94 @@
+{
+  "info": {
+    "_postman_id": "54bf59b7-b75c-4815-8ee6-3f9b185b1129",
+    "name": "My Library API",
+    "schema": "https://schema.getpostman.com/json/collection/v2.1.0/collection.json",
+    "_exporter_id": "48725908"
+  },
+  "item": [
+    {
+      "name": "Members",
+      "item": [
+        {
+          "name": "Get All Members",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": "{{base_url}}/members/"
+          },
+          "response": []
+        },
+        {
+          "name": "Get Specific Member",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": "{{base_url}}/members/1"
+          },
+          "response": []
+        },
+        {
+          "name": "Create Member",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"name\": \"Aldo Herrera\",\n  \"email\": \"aldo@example.com\",\n  \"DOB\": \"1995-06-19\",\n  \"password\": \"password1\"\n}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            },
+            "url": "{{base_url}}/members/"
+          },
+          "response": []
+        },
+        {
+          "name": "Update Member",
+          "request": {
+            "method": "PUT",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"name\": \"Aldo H.\",\n  \"email\": \"aldo.updated@example.com\"\n}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            },
+            "url": "{{base_url}}/members/1"
+          },
+          "response": []
+        },
+        {
+          "name": "Delete Member",
+          "request": {
+            "method": "DELETE",
+            "header": [],
+            "url": "{{base_url}}/members/1"
+          },
+          "response": []
+        }
+      ]
+    }
+  ],
+  "variable": [
+    {
+      "key": "base_url",
+      "value": "http://127.0.0.1:5001"
+    }
+  ]
+}
