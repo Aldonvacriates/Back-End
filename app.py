@@ -12,5 +12,4 @@ with app.app_context():
 
 
 if __name__ == "__main__":
-    port = int(os.getenv("PORT", "5000"))
-    app.run(port=port, use_reloader=False)
+    app.run(debug=True,)

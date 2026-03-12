@@ -1,8 +1,7 @@
 from flask_sqlalchemy import SQLAlchemy
-from sqlalchemy.orm import DeclarativeBase, Mapped, mapped_column
+from sqlalchemy.orm import DeclarativeBase, Mapped, mapped_column, relationship
 from datetime import date
 from typing import List
-
 
 
 # Create a base class for our models
@@ -12,9 +11,6 @@ class Base(DeclarativeBase):
 
 # Instantiate your SQLAlchemy database
 db = SQLAlchemy(model_class=Base)
-
-
-
 
 
 loan_book = db.Table(
@@ -34,9 +30,7 @@ class Member(Base):
     DOB: Mapped[date] = mapped_column(db.Date, nullable=True)
     password: Mapped[str] = mapped_column(db.String(255), nullable=False)
 
-    loans: Mapped[List["Loan"]] = db.relationship(
-        back_populates="member"
-    )  # relationship attribute to link to the Loan model
+    loans: Mapped[List["Loan"]] = relationship(back_populates="member")
 
 
 class Loan(Base):
@@ -46,12 +40,10 @@ class Loan(Base):
     loan_date: Mapped[date] = mapped_column(db.Date)
     member_id: Mapped[int] = mapped_column(db.ForeignKey("members.id"))
 
-    member: Mapped["Member"] = db.relationship(
-        back_populates="loans"
-    )  # relationship attribute to link to the Member model
-    books: Mapped[List["Book"]] = db.relationship(
+    member: Mapped["Member"] = relationship(back_populates="loans")
+    books: Mapped[List["Book"]] = relationship(
         "Book", secondary="loan_books", back_populates="loans"
-    )  # relationship attribute to link to the Book model through the association table
+    )
 
 
 class Book(Base):
@@ -63,6 +55,6 @@ class Book(Base):
     desc: Mapped[str] = mapped_column(db.String(255), nullable=False)
     title: Mapped[str] = mapped_column(db.String(255), nullable=False)
 
-    loans: Mapped[List["Loan"]] = db.relationship(
+    loans: Mapped[List["Loan"]] = relationship(
         "Loan", secondary="loan_books", back_populates="books"
-    )  # relationship attribute to link to the Loan model through the association table
+    )
