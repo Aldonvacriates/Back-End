@@ -1,0 +1,128 @@
+{% extends "base.html" %}
+
+{% block title %}My Library | Home{% endblock %}
+
+{% block head_scripts %}
+    <script type="module" defer src="{{ url_for('static', filename='scripts/home.js') }}"></script>
+{% endblock %}
+
+{% block content %}
+    <section class="hero-panel home-hero shadow-lg" id="home-hero">
+        <div class="hero-copy">
+            <p class="eyebrow">Library Operations Console</p>
+            <h1>Start at the front door, then enter the dashboard.</h1>
+            <p class="lead">
+                Log in with an existing member account or create a new one. Once you are authenticated,
+                you move into the command center for books and loans.
+            </p>
+
+            <div class="hero-badges">
+                <span class="pill badge rounded-pill hero-chip">JWT Auth</span>
+                <span class="pill badge rounded-pill hero-chip">Member Onboarding</span>
+                <span class="pill badge rounded-pill hero-chip">Dashboard Redirect</span>
+            </div>
+        </div>
+
+        <aside class="hero-stack">
+            <section class="status-card shadow-sm">
+                <p class="section-label">How It Works</p>
+                <div class="flow-list list-group list-group-flush">
+                    <article class="flow-step list-group-item border-0">
+                        <span class="flow-index">01</span>
+                        <p>Create a member account or log in with one you already have.</p>
+                    </article>
+                    <article class="flow-step list-group-item border-0">
+                        <span class="flow-index">02</span>
+                        <p>The access token is saved locally for authenticated API requests.</p>
+                    </article>
+                    <article class="flow-step list-group-item border-0">
+                        <span class="flow-index">03</span>
+                        <p>Successful authentication sends you to the dashboard command center.</p>
+                    </article>
+                </div>
+            </section>
+        </aside>
+    </section>
+
+    <div class="page-feedback hidden" id="home-feedback" role="status" aria-live="polite"></div>
+
+    <section class="access-grid row g-4 align-items-stretch">
+        <article class="section-card access-card col-lg-6 d-flex flex-column shadow-sm" id="login-panel">
+            <div class="section-heading">
+                <div>
+                    <p class="eyebrow">Authentication</p>
+                    <h2>Member Login</h2>
+                </div>
+            </div>
+
+            <form class="form-panel row g-3" id="login-form">
+                <label class="field col-12">
+                    <span class="form-label mb-0">Email</span>
+                    <input class="form-control form-control-lg" id="login-email" name="email" type="email" placeholder="reader@example.com" required>
+                </label>
+
+                <label class="field col-12">
+                    <span class="form-label mb-0">Password</span>
+                    <input class="form-control form-control-lg" id="login-password" name="password" type="password" placeholder="secret123" required>
+                </label>
+
+                <div class="form-actions col-12">
+                    <button class="button button-primary btn btn-success btn-lg w-100" id="login-submit" type="submit">Log In</button>
+                </div>
+            </form>
+
+            <div class="info-panel h-100 shadow-sm">
+                <p class="section-label">Login Notes</p>
+                <ul class="notes-list list-group list-group-flush">
+                    <li class="list-group-item bg-transparent px-0">Tokens are stored in `localStorage` after a successful login.</li>
+                    <li class="list-group-item bg-transparent px-0">The dashboard uses that token for protected member and loan requests.</li>
+                    <li class="list-group-item bg-transparent px-0">If your session expires, the frontend can use the refresh token automatically.</li>
+                </ul>
+            </div>
+        </article>
+
+        <article class="section-card access-card col-lg-6 d-flex flex-column shadow-sm" id="register-panel">
+            <div class="section-heading">
+                <div>
+                    <p class="eyebrow">Registration</p>
+                    <h2>Create Member Account</h2>
+                </div>
+            </div>
+
+            <form class="form-panel row g-3" id="register-form">
+                <label class="field col-12">
+                    <span class="form-label mb-0">Name</span>
+                    <input class="form-control form-control-lg" id="register-name" name="name" type="text" placeholder="Ada Lovelace" required>
+                </label>
+
+                <label class="field col-12">
+                    <span class="form-label mb-0">Email</span>
+                    <input class="form-control form-control-lg" id="register-email" name="email" type="email" placeholder="ada@example.com" required>
+                </label>
+
+                <label class="field col-12">
+                    <span class="form-label mb-0">Date of Birth</span>
+                    <input class="form-control form-control-lg" id="register-dob" name="dob" type="date">
+                </label>
+
+                <label class="field col-12">
+                    <span class="form-label mb-0">Password</span>
+                    <input class="form-control form-control-lg" id="register-password" name="password" type="password" placeholder="Choose a strong password" required>
+                </label>
+
+                <div class="form-actions col-12">
+                    <button class="button button-primary btn btn-success btn-lg w-100" id="register-submit" type="submit">Create Account</button>
+                </div>
+            </form>
+
+            <div class="info-panel h-100 shadow-sm">
+                <p class="section-label">Registration Notes</p>
+                <ul class="notes-list list-group list-group-flush">
+                    <li class="list-group-item bg-transparent px-0">After account creation the UI attempts to log in automatically.</li>
+                    <li class="list-group-item bg-transparent px-0">If automatic login fails, your account still exists and the login form is prefilled.</li>
+                    <li class="list-group-item bg-transparent px-0">The home page stays the entry point for all member access.</li>
+                </ul>
+            </div>
+        </article>
+    </section>
+{% endblock %}

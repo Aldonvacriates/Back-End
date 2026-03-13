@@ -1,0 +1,142 @@
+{% extends "base.html" %}
+
+{% block title %}My Library | Dashboard{% endblock %}
+
+{% block head_scripts %}
+    <script type="module" defer src="{{ url_for('static', filename='scripts/dashboard.js') }}"></script>
+{% endblock %}
+
+{% block content %}
+    <section class="hero-panel dashboard-hero shadow-lg" id="welcome-section">
+        <div class="hero-copy">
+            <p class="eyebrow">Member Dashboard</p>
+            <h1>Library Command Center</h1>
+            <p class="lead">
+                Add books, loan titles to yourself, and review your active circulation activity from one place.
+            </p>
+
+            <div class="hero-badges">
+                <span class="pill badge rounded-pill hero-chip">Protected Dashboard</span>
+                <span class="pill badge rounded-pill hero-chip">Books</span>
+                <span class="pill badge rounded-pill hero-chip">Loans</span>
+            </div>
+        </div>
+
+        <aside class="hero-stack">
+            <section class="status-card shadow-sm">
+                <p class="section-label">Welcome</p>
+                <h2 class="status-title" id="welcome-name">Loading member...</h2>
+                <p class="meta-text" id="welcome-email">Fetching profile details...</p>
+                <p class="meta-text" id="welcome-dob">Date of birth: --</p>
+            </section>
+
+            <section class="status-card shadow-sm">
+                <p class="section-label">Snapshot</p>
+                <div class="metric-grid compact-metrics">
+                    <article class="metric-tile shadow-sm">
+                        <span class="metric-value" id="books-count">0</span>
+                        <span class="metric-label">Books</span>
+                    </article>
+                    <article class="metric-tile shadow-sm">
+                        <span class="metric-value" id="loans-count">0</span>
+                        <span class="metric-label">Your Loans</span>
+                    </article>
+                    <article class="metric-tile shadow-sm">
+                        <span class="metric-value" id="member-id-value">--</span>
+                        <span class="metric-label">Member ID</span>
+                    </article>
+                </div>
+            </section>
+        </aside>
+    </section>
+
+    <div class="page-feedback hidden" id="dashboard-feedback" role="status" aria-live="polite"></div>
+
+    <section class="section-card shadow-sm" id="books-section">
+        <div class="section-heading">
+            <div>
+                <p class="eyebrow">Books</p>
+                <h2>Add and Browse Books</h2>
+            </div>
+            <button class="button button-ghost compact btn btn-outline-success" id="reload-books" type="button">Refresh Books</button>
+        </div>
+
+        <div class="panel-grid">
+            <form class="form-panel row g-3 shadow-sm" id="book-form">
+                <label class="field col-12">
+                    <span class="form-label mb-0">Title</span>
+                    <input class="form-control form-control-lg" id="book-title" name="title" type="text" required>
+                </label>
+
+                <label class="field col-12">
+                    <span class="form-label mb-0">Author</span>
+                    <input class="form-control form-control-lg" id="book-author" name="author" type="text" required>
+                </label>
+
+                <label class="field col-12">
+                    <span class="form-label mb-0">Genre</span>
+                    <input class="form-control form-control-lg" id="book-genre" name="genre" type="text" required>
+                </label>
+
+                <label class="field col-12">
+                    <span class="form-label mb-0">Description</span>
+                    <textarea class="form-control" id="book-desc" name="desc" rows="4" required></textarea>
+                </label>
+
+                <div class="form-actions col-12">
+                    <button class="button button-primary btn btn-success btn-lg w-100" id="book-submit" type="submit">Add Book</button>
+                </div>
+            </form>
+
+            <div class="table-panel shadow-sm">
+                <div class="table-toolbar">
+                    <p class="section-label">Library Catalog</p>
+                    <span class="pill badge rounded-pill hero-chip">Shared collection</span>
+                </div>
+                <div class="table-shell" id="books-table">
+                    <div class="table-empty">Loading books...</div>
+                </div>
+            </div>
+        </div>
+    </section>
+
+    <section class="section-card shadow-sm" id="loans-section">
+        <div class="section-heading">
+            <div>
+                <p class="eyebrow">Loans</p>
+                <h2>Borrow a Book</h2>
+            </div>
+            <button class="button button-ghost compact btn btn-outline-success" id="reload-loans" type="button">Refresh Loans</button>
+        </div>
+
+        <div class="panel-grid">
+            <form class="form-panel row g-3 shadow-sm" id="loan-form">
+                <label class="field col-12">
+                    <span class="form-label mb-0">Loan Date</span>
+                    <input class="form-control form-control-lg" id="loan-date" name="loan_date" type="date" required>
+                </label>
+
+                <label class="field col-12">
+                    <span class="form-label mb-0">Select Books</span>
+                    <select class="form-select" id="loan-books" name="book_ids" multiple size="8" required></select>
+                </label>
+
+                <p class="helper-text col-12 mb-0">Hold Ctrl or Cmd to choose multiple books in one loan.</p>
+
+                <div class="form-actions col-12">
+                    <button class="button button-primary btn btn-success btn-lg w-100" id="loan-submit" type="submit">Loan Books</button>
+                </div>
+            </form>
+
+            <div class="table-panel shadow-sm">
+                <div class="table-toolbar">
+                    <p class="section-label">Your Active Loans</p>
+                    <span class="pill badge rounded-pill hero-chip">Protected route</span>
+                </div>
+                <div class="table-shell" id="loans-table">
+                    <div class="table-empty">Loading loans...</div>
+                </div>
+            </div>
+        </div>
+    </section>
+{% endblock %}

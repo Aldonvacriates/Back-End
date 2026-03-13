@@ -1,4 +1,5 @@
 from flask import current_app, jsonify, request
+from flask_jwt_extended import jwt_required
 from marshmallow import ValidationError
 from sqlalchemy import or_, select
 
@@ -24,6 +25,7 @@ def _invalidate_book_cache(book_id=None):
 
 
 @books_bp.route("/", methods=["POST"])
+@jwt_required()
 def create_book():
     data = request.get_json(silent=True)
     if not data:

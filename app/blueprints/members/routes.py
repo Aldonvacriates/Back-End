@@ -1,6 +1,7 @@
 # Import request object to read incoming HTTP data
 # jsonify is used to return JSON responses
 from flask import current_app, jsonify, request
+from flask_jwt_extended import get_jwt_identity, jwt_required
 
 # ValidationError is raised when Marshmallow validation fails
 from marshmallow import ValidationError
@@ -97,6 +98,19 @@ def get_members():
 
     # Serialize members list using Marshmallow schema
     return jsonify(members_schema.dump(members)), 200
+
+
+@members_bp.route("/me", methods=["GET"])
+@jwt_required()
+def get_current_member():
+
+    member_id = int(get_jwt_identity())
+    member = db.session.get(Member, member_id)
+
+    if not member:
+        return jsonify({"error": "Member not found."}), 404
+
+    return jsonify(member_schema.dump(member)), 200
 
 
 # ---------------------------------------------------

@@ -1,4 +1,5 @@
 from flask import current_app, jsonify, request
+from flask_jwt_extended import get_jwt_identity, jwt_required
 from marshmallow import ValidationError
 from sqlalchemy import select
 
@@ -39,6 +40,7 @@ def _get_books_from_ids(book_ids):
 
 
 @loans_bp.route("/", methods=["POST"])
+@jwt_required()
 def create_loan():
     data = request.get_json(silent=True)
     if not data:
@@ -49,6 +51,12 @@ def create_loan():
     except ValidationError as e:
         return jsonify(e.messages), 400
 
+    current_member_id = int(get_jwt_identity())
+    requested_member_id = loan_data.get("member_id")
+    if requested_member_id is not None and requested_member_id != current_member_id:
+        return jsonify({"error": "You can only create loans for your own account."}), 403
+
+    loan_data["member_id"] = current_member_id
     book_ids = loan_data.pop("book_ids", [])
 
     member = db.session.get(Member, loan_data["member_id"])
@@ -67,6 +75,16 @@ def create_loan():
     _invalidate_loan_cache(new_loan.id)
 
     return jsonify(loan_schema.dump(new_loan)), 201
+
+
+@loans_bp.route("/me", methods=["GET"])
+@jwt_required()
+@limiter.limit(lambda: current_app.config["HEAVY_READ_RATE_LIMIT"])
+def get_my_loans():
+    member_id = int(get_jwt_identity())
+    query = select(Loan).where(Loan.member_id == member_id)
+    loans = db.session.execute(query).scalars().all()
+    return jsonify(loans_schema.dump(loans)), 200
 
 
 @loans_bp.route("/", methods=["GET"])

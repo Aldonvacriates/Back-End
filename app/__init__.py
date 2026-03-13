@@ -4,6 +4,7 @@ from flask_limiter.errors import RateLimitExceeded
 from .extensions import cache, jwt, limiter, ma
 from .models import db
 from .blueprints.auth import auth_bp
+from .blueprints.frontend import frontend_bp
 from .blueprints.members import members_bp
 from .blueprints.books import books_bp
 from .blueprints.loans import loans_bp
@@ -37,6 +38,7 @@ def create_app(config_name="DevelopmentConfig"):
         )
 
     # Register blueprints
+    app.register_blueprint(frontend_bp)
     app.register_blueprint(auth_bp, url_prefix="/auth")
     app.register_blueprint(
         members_bp, url_prefix="/members"

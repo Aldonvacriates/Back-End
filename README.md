@@ -11,6 +11,7 @@ Flask backend for a simple library management API using the app factory pattern,
 - JWT login and refresh endpoints
 - Redis-backed shared rate limiting
 - Cached read endpoints with invalidation on writes
+- Integrated browser UI at `/`
 - JSON `429` responses when rate limits are exceeded
 
 ## Tech Stack
@@ -37,6 +38,13 @@ My-Library/
     |-- __init__.py
     |-- extensions.py
     |-- models.py
+    |-- static/
+    |   |-- scripts/
+    |   |   `-- app.js
+    |   `-- styles/
+    |       `-- app.css
+    |-- templates/
+    |   `-- index.html
     `-- blueprints/
         |-- auth/
         |   |-- __init__.py
@@ -46,6 +54,9 @@ My-Library/
         |   |-- __init__.py
         |   |-- routes.py
         |   `-- schemas.py
+        |-- frontend/
+        |   |-- __init__.py
+        |   `-- routes.py
         |-- loans/
         |   |-- __init__.py
         |   |-- routes.py
@@ -205,6 +216,12 @@ Default local URL:
 
 ```text
 http://127.0.0.1:5000
+```
+
+The integrated frontend is served from:
+
+```text
+http://127.0.0.1:5000/
 ```
 
 ## API Endpoints
