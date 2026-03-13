@@ -30,7 +30,9 @@ class Member(Base):
     DOB: Mapped[date] = mapped_column(db.Date, nullable=True)
     password: Mapped[str] = mapped_column(db.String(255), nullable=False)
 
-    loans: Mapped[List["Loan"]] = relationship(back_populates="member")
+    loans: Mapped[List["Loan"]] = relationship(
+        back_populates="member", cascade="all, delete-orphan"
+    )
 
 
 class Loan(Base):
