@@ -1,5 +1,56 @@
 import os
 from datetime import timedelta
+from urllib.parse import quote_plus
+
+
+def _first_env(*names):
+    for name in names:
+        value = os.getenv(name)
+        if value:
+            return value
+    return None
+
+
+def _normalize_database_url(url):
+    if not url:
+        return url
+
+    if url.startswith("mysql://"):
+        return url.replace("mysql://", "mysql+mysqlconnector://", 1)
+
+    return url
+
+
+def _build_mysql_url_from_parts():
+    host = _first_env("MYSQLHOST", "MYSQL_HOST")
+    port = _first_env("MYSQLPORT", "MYSQL_PORT", "DB_PORT") or "3306"
+    user = _first_env("MYSQLUSER", "MYSQL_USER")
+    password = _first_env("MYSQLPASSWORD", "MYSQL_PASSWORD")
+    database = _first_env("MYSQLDATABASE", "MYSQL_DATABASE")
+
+    if not all([host, user, password, database]):
+        return None
+
+    return (
+        "mysql+mysqlconnector://"
+        f"{quote_plus(user)}:{quote_plus(password)}@{host}:{port}/{database}"
+    )
+
+
+def _database_url(default):
+    configured_url = _first_env("DATABASE_URL", "MYSQL_URL", "MYSQL_PUBLIC_URL")
+    if configured_url:
+        return _normalize_database_url(configured_url)
+
+    mysql_url = _build_mysql_url_from_parts()
+    if mysql_url:
+        return mysql_url
+
+    return default
+
+
+def _redis_url(default):
+    return _first_env("REDIS_URL", "REDIS_PUBLIC_URL") or default
 
 
 # -----------------------------------------------------
@@ -26,10 +77,7 @@ class BaseConfig:
     # Redis connection used for caching
     # First tries CACHE_REDIS_URL, then REDIS_URL,
     # otherwise defaults to local Redis instance
-    CACHE_REDIS_URL = os.getenv(
-        "CACHE_REDIS_URL",
-        os.getenv("REDIS_URL", "redis://localhost:6379/1"),
-    )
+    CACHE_REDIS_URL = os.getenv("CACHE_REDIS_URL", _redis_url("redis://localhost:6379/1"))
 
     # Secret key used to sign JWT tokens
     # Should always be replaced with a strong value
@@ -48,7 +96,7 @@ class BaseConfig:
     # Uses Redis so limits are shared across multiple workers
     RATELIMIT_STORAGE_URI = os.getenv(
         "RATELIMIT_STORAGE_URI",
-        os.getenv("REDIS_URL", "redis://localhost:6379/0"),
+        _redis_url("redis://localhost:6379/0"),
     )
 
     # Rate limiting algorithm
@@ -91,9 +139,8 @@ class DevelopmentConfig(BaseConfig):
     CACHE_TYPE = os.getenv("CACHE_TYPE", "SimpleCache")
 
     # Local MySQL database connection
-    SQLALCHEMY_DATABASE_URI = os.getenv(
-        "DATABASE_URL",
-        "mysql+mysqlconnector://root:Lolita1!@localhost/library_db",
+    SQLALCHEMY_DATABASE_URI = _database_url(
+        "mysql+mysqlconnector://root:Lolita1!@localhost/library_db"
     )
 
     # Enables Flask debug mode
@@ -138,7 +185,6 @@ class ProductionConfig(BaseConfig):
     CACHE_TYPE = os.getenv("CACHE_TYPE", "RedisCache")
 
     # Production database connection
-    SQLALCHEMY_DATABASE_URI = os.getenv(
-        "DATABASE_URL",
-        "mysql+mysqlconnector://root:Lolita1!@localhost/library_db",
+    SQLALCHEMY_DATABASE_URI = _database_url(
+        "mysql+mysqlconnector://root:Lolita1!@localhost/library_db"
     )

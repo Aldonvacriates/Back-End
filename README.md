@@ -1,30 +1,30 @@
-# My-Library API
+# My Library
 
-Flask backend for a simple library management API using the app factory pattern, SQLAlchemy, Marshmallow, JWT authentication, rate limiting with Flask-Limiter, and response caching with Flask-Caching.
+Flask library management app with JWT authentication, rate limiting, caching, and a browser frontend for members, books, and loans.
+
+## Stack
+
+- Flask 3.1
+- SQLAlchemy
+- Marshmallow
+- Flask-JWT-Extended
+- Flask-Limiter
+- Flask-Caching
+- MySQL
+- Redis
+- Vanilla JavaScript frontend
+- Gunicorn for production
 
 ## Features
 
 - App factory architecture with `create_app()`
-- Blueprint-based route organization
-- SQLAlchemy models for members, books, and loans
-- Marshmallow request validation and serialization
-- JWT login and refresh endpoints
+- Blueprint-based API routes
+- JWT login and refresh flow
 - Redis-backed shared rate limiting
 - Cached read endpoints with invalidation on writes
-- Integrated browser UI at `/`
-- JSON `429` responses when rate limits are exceeded
-
-## Tech Stack
-
-- Python 3.13
-- Flask 3.1
-- Flask-SQLAlchemy
-- Marshmallow / Flask-Marshmallow
-- Flask-JWT-Extended
-- Flask-Caching
-- Flask-Limiter
-- Redis
-- MySQL
+- Home page for member login and registration
+- Dashboard for books and loans
+- Railway-ready production startup with `gunicorn`
 
 ## Project Structure
 
@@ -32,148 +32,65 @@ Flask backend for a simple library management API using the app factory pattern,
 My-Library/
 |-- app.py
 |-- config.py
+|-- gunicorn.conf.py
+|-- railway.json
 |-- requirements.txt
 |-- README.md
 `-- app/
     |-- __init__.py
     |-- extensions.py
     |-- models.py
+    |-- templates/
+    |   |-- base.html
+    |   |-- home.html
+    |   `-- dashboard.html
     |-- static/
     |   |-- scripts/
-    |   |   `-- app.js
+    |   |   |-- api.js
+    |   |   |-- auth.js
+    |   |   |-- dashboard.js
+    |   |   |-- home.js
+    |   |   `-- layout.js
     |   `-- styles/
     |       `-- app.css
-    |-- templates/
-    |   `-- index.html
     `-- blueprints/
         |-- auth/
-        |   |-- __init__.py
-        |   |-- routes.py
-        |   `-- schemas.py
         |-- books/
-        |   |-- __init__.py
-        |   |-- routes.py
-        |   `-- schemas.py
         |-- frontend/
-        |   |-- __init__.py
-        |   `-- routes.py
         |-- loans/
-        |   |-- __init__.py
-        |   |-- routes.py
-        |   `-- schemas.py
         `-- members/
-            |-- __init__.py
-            |-- routes.py
-            `-- schemas.py
 ```
 
-## Data Model
+## Environment Variables
 
-### Member
+### Required for production
 
-- `id`: integer primary key
-- `name`: string, required
-- `email`: string, required, unique
-- `DOB`: date, optional
-- `password`: string, required, stored hashed for newly created or updated members
+| Variable | Purpose | Example |
+|---|---|---|
+| `JWT_SECRET_KEY` | Signs JWT access and refresh tokens | `a-long-random-secret-value` |
+| `DATABASE_URL` or Railway MySQL vars | Database connection string | `mysql://user:pass@host:3306/db` |
 
-### Book
+### Recommended for production
 
-- `id`: integer primary key
-- `title`: string, required
-- `author`: string, required
-- `genre`: string, required
-- `desc`: string, required
+| Variable | Purpose | Example |
+|---|---|---|
+| `REDIS_URL` | Shared Redis connection for rate limiting | `redis://default:password@host:6379` |
+| `CACHE_REDIS_URL` | Redis connection for Flask-Caching | `redis://default:password@host:6379/1` |
+| `RATELIMIT_STORAGE_URI` | Explicit limiter storage override | `redis://default:password@host:6379/0` |
+| `APP_CONFIG` | Config class override | `ProductionConfig` |
 
-### Loan
+### Optional
 
-- `id`: integer primary key
-- `loan_date`: date
-- `member_id`: foreign key to `members.id`
-- `book_ids`: virtual API field used to attach books to a loan
+| Variable | Purpose | Default |
+|---|---|---|
+| `AUTO_CREATE_TABLES` | Runs `db.create_all()` on startup when set to `true` | `false` |
+| `GUNICORN_WORKERS` | Gunicorn worker count | `2` |
+| `GUNICORN_THREADS` | Gunicorn threads per worker | `4` |
+| `GUNICORN_TIMEOUT` | Gunicorn timeout in seconds | `120` |
 
-## Configuration
+## Local Development
 
-The app supports `DevelopmentConfig`, `TestingConfig`, and `ProductionConfig` from `config.py`.
-
-### Environment Variables
-
-| Variable | Required | Purpose | Example |
-|---|---|---|---|
-| `DATABASE_URL` | Yes | SQLAlchemy database connection string | `mysql+mysqlconnector://root:password@localhost/library_db` |
-| `JWT_SECRET_KEY` | Yes | Secret used to sign JWTs. Use a strong value in production. | `super-long-random-secret-at-least-32-bytes` |
-| `REDIS_URL` | Recommended | Redis connection string used by the rate limiter | `redis://localhost:6379/0` |
-| `RATELIMIT_STORAGE_URI` | Optional | Explicit Flask-Limiter storage URI. Overrides `REDIS_URL` if set. | `redis://localhost:6379/1` |
-| `CACHE_TYPE` | Optional | Cache backend. Development defaults to `SimpleCache`, production defaults to `RedisCache`. | `RedisCache` |
-| `CACHE_REDIS_URL` | Optional | Redis connection string for Flask-Caching when using `RedisCache` | `redis://localhost:6379/1` |
-| `TEST_DATABASE_URL` | Optional | Database URL for `TestingConfig` | `sqlite+pysqlite:///:memory:` |
-
-### Default Rate Limit Settings
-
-These values currently come from `config.py`:
-
-- Global default limits: `200 per day, 50 per hour`
-- Application-wide limit: `1000 per hour`
-- In-memory fallback limits: `200 per day, 50 per hour`
-- Auth login limit: `5 per minute`
-- Auth refresh limit: `10 per minute`
-- Heavy read endpoints: `20 per minute`
-- Search endpoint: `10 per minute`
-
-## Rate Limiting
-
-Rate limiting is configured in `app/extensions.py` with Flask-Limiter and Redis storage.
-
-- Authenticated requests are keyed by JWT identity: `user:<id>`
-- Anonymous requests fall back to IP address: `ip:<remote_addr>`
-- Rate limit headers are enabled
-- `DevelopmentConfig` and `TestingConfig` automatically fall back to in-memory storage if Redis is unavailable
-- Limit breaches return JSON instead of HTML
-
-Example `429` response:
-
-```json
-{
-  "error": "rate_limit_exceeded",
-  "message": "Rate limit exceeded. Please retry later.",
-  "details": {
-    "limit": "5 per 1 minute",
-    "remaining": 0,
-    "reset_at": "2026-03-13T15:13:09+00:00",
-    "path": "/auth/login"
-  }
-}
-```
-
-## Caching
-
-Caching is configured in `app/extensions.py` with Flask-Caching.
-
-- `DevelopmentConfig` and `TestingConfig` use `SimpleCache`
-- `ProductionConfig` uses `RedisCache` by default
-- Cached GET routes are invalidated after create, update, and delete operations
-- Current cached endpoints are:
-  - `GET /books/`
-  - `GET /books/<book_id>`
-  - `GET /members/`
-  - `GET /members/<member_id>`
-  - `GET /loans/`
-  - `GET /loans/<loan_id>`
-
-## Authentication
-
-JWT support is provided by Flask-JWT-Extended.
-
-- `POST /auth/login` returns an access token and refresh token
-- `POST /auth/refresh` requires a valid refresh token and returns a new access token
-
-Note: the current codebase only enforces JWT on `/auth/refresh`. Resource endpoints for members, books, and loans are not yet protected with `@jwt_required()`.
-
-## Setup
-
-### 1. Create and activate a virtual environment
-
-PowerShell:
+### 1. Create a virtual environment
 
 ```powershell
 python -m venv venv
@@ -186,227 +103,154 @@ python -m venv venv
 pip install -r requirements.txt
 ```
 
-### 3. Start Redis
-
-Use your local Redis service, or start one with Docker:
+### 3. Set local environment variables
 
 ```powershell
-docker run --name my-library-redis -p 6379:6379 redis:7
-```
-
-### 4. Set environment variables
-
-PowerShell example:
-
-```powershell
+$env:APP_CONFIG = "DevelopmentConfig"
 $env:DATABASE_URL = "mysql+mysqlconnector://root:password@localhost/library_db"
 $env:JWT_SECRET_KEY = "replace-this-with-a-strong-random-secret"
 $env:REDIS_URL = "redis://localhost:6379/0"
 ```
 
-### 5. Run the application
+### 4. Run the app
 
 ```powershell
 python app.py
 ```
 
-The app starts in development mode and creates database tables automatically through `db.create_all()` in `app.py`.
+Local URLs:
 
-Default local URL:
+- Home: `http://127.0.0.1:5000/`
+- Dashboard: `http://127.0.0.1:5000/dashboard`
+- Healthcheck: `http://127.0.0.1:5000/health`
+
+## Railway Deployment
+
+This repo is configured for Railway with:
+
+- `railway.json` start command: `gunicorn app:app`
+- `gunicorn.conf.py` binding to Railway's `PORT`
+- `/health` endpoint for Railway healthchecks
+- production-safe startup without the Flask dev server
+
+### 1. Add services
+
+- Create a Railway project
+- Add your web service from this repo
+- Add a MySQL service
+- Add a Redis service
+
+### 2. Set variables on the web service
+
+Set at least:
 
 ```text
-http://127.0.0.1:5000
+APP_CONFIG=ProductionConfig
+JWT_SECRET_KEY=replace-this-with-a-real-secret
 ```
 
-The integrated frontend is served from:
+Then provide database access using one of these approaches:
+
+- Preferred: map Railway MySQL variables into `DATABASE_URL`
+- Supported automatically: `MYSQL_URL`, `MYSQL_PUBLIC_URL`, or `MYSQLHOST` / `MYSQLPORT` / `MYSQLUSER` / `MYSQLPASSWORD` / `MYSQLDATABASE`
+
+For Redis, set one of:
 
 ```text
-http://127.0.0.1:5000/
+REDIS_URL=redis://...
 ```
 
-## API Endpoints
+Optional explicit overrides:
+
+```text
+CACHE_REDIS_URL=redis://...
+RATELIMIT_STORAGE_URI=redis://...
+```
+
+### 3. First deploy
+
+Push the repo and deploy. Railway will:
+
+- install the Python dependencies from `requirements.txt`
+- start the app with `gunicorn app:app`
+- call `/health` for healthchecks
+
+### 4. Optional schema bootstrap
+
+If you want Railway to create tables on first boot without migrations, set:
+
+```text
+AUTO_CREATE_TABLES=true
+```
+
+This is acceptable for a first deploy or demo environment, but it is not a migration strategy.
+
+## API Summary
 
 ### Auth
 
-| Method | Endpoint | Description | Rate Limit |
-|---|---|---|---|
-| `POST` | `/auth/login` | Authenticate a member and return JWT tokens | `5 per minute` |
-| `POST` | `/auth/refresh` | Exchange a refresh token for a new access token | `10 per minute` |
-
-#### `POST /auth/login`
-
-Request body:
-
-```json
-{
-  "email": "alice@example.com",
-  "password": "secret123"
-}
-```
-
-Response:
-
-```json
-{
-  "access_token": "<jwt>",
-  "refresh_token": "<jwt>",
-  "token_type": "Bearer"
-}
-```
-
-#### `POST /auth/refresh`
-
-Headers:
-
-```text
-Authorization: Bearer <refresh-token>
-```
-
-Response:
-
-```json
-{
-  "access_token": "<jwt>",
-  "token_type": "Bearer"
-}
-```
+- `POST /auth/login`
+- `POST /auth/refresh`
 
 ### Members
 
-| Method | Endpoint | Description | Rate Limit |
-|---|---|---|---|
-| `POST` | `/members/` | Create a new member | Default global limits |
-| `GET` | `/members/` | List all members | `20 per minute` |
-| `GET` | `/members/<member_id>` | Get one member | Default global limits |
-| `PUT` | `/members/<member_id>` | Update a member | Default global limits |
-| `DELETE` | `/members/<member_id>` | Delete a member | Default global limits |
-
-Create member request:
-
-```json
-{
-  "name": "Alice Reader",
-  "email": "alice@example.com",
-  "DOB": "1995-04-15",
-  "password": "secret123"
-}
-```
-
-Example response:
-
-```json
-{
-  "DOB": "1995-04-15",
-  "email": "alice@example.com",
-  "id": 1,
-  "name": "Alice Reader"
-}
-```
+- `POST /members/`
+- `GET /members/`
+- `GET /members/<member_id>`
+- `GET /members/me`
+- `PUT /members/<member_id>`
+- `DELETE /members/<member_id>`
 
 ### Books
 
-| Method | Endpoint | Description | Rate Limit |
-|---|---|---|---|
-| `POST` | `/books/` | Create a book | Default global limits |
-| `GET` | `/books/` | List all books | `20 per minute` |
-| `GET` | `/books/search?q=<term>` | Search title, author, genre, or description | `10 per minute` |
-| `GET` | `/books/<book_id>` | Get one book | Default global limits |
-| `PUT` | `/books/<book_id>` | Update a book | Default global limits |
-| `DELETE` | `/books/<book_id>` | Delete a book | Default global limits |
-
-Create book request:
-
-```json
-{
-  "title": "The Pragmatic Programmer",
-  "author": "Andrew Hunt",
-  "genre": "Software Engineering",
-  "desc": "A practical guide to software craftsmanship."
-}
-```
+- `POST /books/`
+- `GET /books/`
+- `GET /books/search?q=<term>`
+- `GET /books/<book_id>`
+- `PUT /books/<book_id>`
+- `DELETE /books/<book_id>`
 
 ### Loans
 
-| Method | Endpoint | Description | Rate Limit |
-|---|---|---|---|
-| `POST` | `/loans/` | Create a loan and attach books | Default global limits |
-| `GET` | `/loans/` | List all loans | `20 per minute` |
-| `GET` | `/loans/<loan_id>` | Get one loan | Default global limits |
-| `PUT` | `/loans/<loan_id>` | Update a loan | Default global limits |
-| `DELETE` | `/loans/<loan_id>` | Delete a loan | Default global limits |
+- `POST /loans/`
+- `GET /loans/`
+- `GET /loans/me`
+- `GET /loans/<loan_id>`
+- `PUT /loans/<loan_id>`
+- `DELETE /loans/<loan_id>`
 
-Create loan request:
+## Auth Notes
 
-```json
-{
-  "loan_date": "2026-03-13",
-  "member_id": 1,
-  "book_ids": [1, 2]
-}
-```
+- `POST /auth/login` returns `access_token` and `refresh_token`
+- protected requests should send `Authorization: Bearer <access-token>`
+- the frontend stores tokens in `localStorage`
+- `POST /auth/refresh` accepts a refresh token and returns a new access token
 
-Example loan response:
+## Rate Limiting
 
-```json
-{
-  "book_ids": [1, 2],
-  "id": 1,
-  "loan_date": "2026-03-13",
-  "member_id": 1
-}
-```
+Configured in `app/extensions.py`.
 
-## Common Error Responses
+- default global limit: `200 per day, 50 per hour`
+- application limit: `1000 per hour`
+- auth login limit: `5 per minute`
+- auth refresh limit: `10 per minute`
+- heavy read limit: `20 per minute`
+- search limit: `10 per minute`
 
-### Invalid JSON
+Limit breaches return JSON `429` responses.
 
-```json
-{
-  "error": "Request body must be valid JSON."
-}
-```
+## Caching
 
-### Validation Error
+Configured in `app/extensions.py`.
 
-Marshmallow returns field-level validation messages:
-
-```json
-{
-  "email": [
-    "Not a valid email address."
-  ]
-}
-```
-
-### Duplicate Member Email
-
-```json
-{
-  "error": "Email already associated with an account."
-}
-```
-
-### Not Found
-
-```json
-{
-  "error": "Book not found."
-}
-```
-
-## Development Notes
-
-- `app.py` calls `db.create_all()` automatically on startup
-- `TestingConfig` uses in-memory SQLite and `memory://` rate-limit storage
-- `TestingConfig` also uses `SimpleCache`
-- `My-Library.postman_collection.json` can be used for API testing
-- Passwords are hidden from serialized member responses
+- development and testing default to `SimpleCache`
+- production defaults to `RedisCache`
+- cached reads are invalidated after writes
 
 ## Production Notes
 
-- Replace the default `JWT_SECRET_KEY`
-- Use a real MySQL database and a reachable Redis instance
-- In-memory fallback is enabled for development and testing only; production should keep Redis available
-- Production caching defaults to Redis through `CACHE_REDIS_URL`
-- Do not rely on `db.create_all()` for schema changes in a production workflow; use migrations
-- Add `@jwt_required()` to resource routes if you want JWT protection across the API
+- Use `gunicorn`, not `python app.py`, in production
+- Replace the default JWT secret before deploying
+- Keep Redis available in production for shared rate limiting and cache storage
+- Prefer migrations for schema changes instead of relying on `AUTO_CREATE_TABLES`
+- Railway deploys on Linux, so Windows-only packages like `pywin32` should not be in production dependencies
