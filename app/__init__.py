@@ -10,9 +10,38 @@ from .blueprints.books import books_bp
 from .blueprints.loans import loans_bp
 
 
+def validate_runtime_config(app, config_name):
+    if config_name != "ProductionConfig":
+        return
+
+    if app.config["JWT_SECRET_KEY"] == "replace-this-with-a-32-byte-minimum-jwt-secret":
+        raise RuntimeError("JWT_SECRET_KEY must be set to a real secret in production.")
+
+    if app.config["SQLALCHEMY_DATABASE_URI"].endswith("@localhost/library_db"):
+        raise RuntimeError(
+            "Production requires DATABASE_URL or Railway MySQL variables."
+        )
+
+    if app.config["RATELIMIT_STORAGE_URI"].startswith("redis://localhost"):
+        raise RuntimeError(
+            "Production requires REDIS_URL or RATELIMIT_STORAGE_URI for Flask-Limiter."
+        )
+
+    if (
+        app.config["CACHE_TYPE"] == "RedisCache"
+        and app.config["CACHE_REDIS_URL"].startswith("redis://localhost")
+    ):
+        raise RuntimeError(
+            "Production requires REDIS_URL or CACHE_REDIS_URL for Flask-Caching."
+        )
+
+
 def create_app(config_name="DevelopmentConfig"):
     app = Flask(__name__)
     app.config.from_object(f"config.{config_name}")
+    app.config["APP_CONFIG_NAME"] = config_name
+
+    validate_runtime_config(app, config_name)
 
     # initialize extensions
     ma.init_app(app)  # adding our ma extension to our app
