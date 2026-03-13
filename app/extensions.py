@@ -1,11 +1,13 @@
 from datetime import datetime, timezone
 
 from flask import jsonify, request
+from flask_caching import Cache
 from flask_jwt_extended import JWTManager, get_jwt_identity, verify_jwt_in_request
 from flask_jwt_extended.exceptions import JWTExtendedException
 from flask_limiter import Limiter
 from flask_marshmallow import Marshmallow
 
+cache = Cache()
 ma = Marshmallow()
 jwt = JWTManager()
 

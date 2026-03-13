@@ -2,46 +2,142 @@ import os
 from datetime import timedelta
 
 
+# -----------------------------------------------------
+# Base configuration
+# This class contains settings shared across all
+# environments (development, testing, production)
+# -----------------------------------------------------
 class BaseConfig:
+
+    # Disable modification tracking to save memory and
+    # improve performance when using SQLAlchemy
     SQLALCHEMY_TRACK_MODIFICATIONS = False
+
+    # Default cache expiration time (in seconds)
+    CACHE_DEFAULT_TIMEOUT = 60
+
+    # Prevent cache failures from breaking the application
+    CACHE_IGNORE_ERRORS = True
+
+    # Prefix for cache keys to avoid collisions with
+    # other applications using the same Redis instance
+    CACHE_KEY_PREFIX = "my_library:"
+
+    # Redis connection used for caching
+    # First tries CACHE_REDIS_URL, then REDIS_URL,
+    # otherwise defaults to local Redis instance
+    CACHE_REDIS_URL = os.getenv(
+        "CACHE_REDIS_URL",
+        os.getenv("REDIS_URL", "redis://localhost:6379/1"),
+    )
+
+    # Secret key used to sign JWT tokens
+    # Should always be replaced with a strong value
     JWT_SECRET_KEY = os.getenv(
         "JWT_SECRET_KEY",
         "replace-this-with-a-32-byte-minimum-jwt-secret",
     )
+
+    # JWT access token expiration time
     JWT_ACCESS_TOKEN_EXPIRES = timedelta(minutes=15)
+
+    # JWT refresh token expiration time
     JWT_REFRESH_TOKEN_EXPIRES = timedelta(days=30)
+
+    # Storage backend used by Flask-Limiter for rate limiting
+    # Uses Redis so limits are shared across multiple workers
     RATELIMIT_STORAGE_URI = os.getenv(
         "RATELIMIT_STORAGE_URI",
         os.getenv("REDIS_URL", "redis://localhost:6379/0"),
     )
+
+    # Rate limiting algorithm
+    # "moving-window" provides more accurate limits
     RATELIMIT_STRATEGY = "moving-window"
+
+    # Enables rate-limit headers in responses
+    # Example:
+    # X-RateLimit-Limit
+    # X-RateLimit-Remaining
     RATELIMIT_HEADERS_ENABLED = True
+
+    # Default limits applied to all routes unless overridden
     RATELIMIT_DEFAULT = "200 per day, 50 per hour"
+
+    # Application-wide safety limit
     RATELIMIT_APPLICATION = "1000 per hour"
+
+    # Fallback limits used if Redis becomes unavailable
     RATELIMIT_IN_MEMORY_FALLBACK = "200 per day, 50 per hour"
+
+    # Authentication-specific rate limits
     AUTH_LOGIN_RATE_LIMIT = "5 per minute"
     AUTH_REFRESH_RATE_LIMIT = "10 per minute"
+
+    # Limits for heavier read operations
     HEAVY_READ_RATE_LIMIT = "20 per minute"
+
+    # Limits for search endpoints
     SEARCH_RATE_LIMIT = "10 per minute"
 
 
+# -----------------------------------------------------
+# Development configuration
+# Used during local development
+# -----------------------------------------------------
 class DevelopmentConfig(BaseConfig):
+
+    # Simple in-memory cache for development
+    CACHE_TYPE = os.getenv("CACHE_TYPE", "SimpleCache")
+
+    # Local MySQL database connection
     SQLALCHEMY_DATABASE_URI = os.getenv(
         "DATABASE_URL",
         "mysql+mysqlconnector://root:Lolita1!@localhost/library_db",
     )
+
+    # Enables Flask debug mode
     DEBUG = True
+
+    # Allows rate limiter to fall back to in-memory limits
+    # if Redis is unavailable during development
     RATELIMIT_IN_MEMORY_FALLBACK_ENABLED = True
 
 
+# -----------------------------------------------------
+# Testing configuration
+# Used for automated tests
+# -----------------------------------------------------
 class TestingConfig(BaseConfig):
-    SQLALCHEMY_DATABASE_URI = os.getenv("TEST_DATABASE_URL", "sqlite+pysqlite:///:memory:")
+
+    # Simple in-memory cache
+    CACHE_TYPE = "SimpleCache"
+
+    # In-memory SQLite database for fast tests
+    SQLALCHEMY_DATABASE_URI = os.getenv(
+        "TEST_DATABASE_URL", "sqlite+pysqlite:///:memory:"
+    )
+
+    # Use in-memory rate limit storage during tests
     RATELIMIT_STORAGE_URI = "memory://"
+
+    # Enable Flask testing mode
     TESTING = True
+
+    # Allow fallback rate limiting
     RATELIMIT_IN_MEMORY_FALLBACK_ENABLED = True
 
 
+# -----------------------------------------------------
+# Production configuration
+# Used when the application is deployed
+# -----------------------------------------------------
 class ProductionConfig(BaseConfig):
+
+    # Production cache should use Redis
+    CACHE_TYPE = os.getenv("CACHE_TYPE", "RedisCache")
+
+    # Production database connection
     SQLALCHEMY_DATABASE_URI = os.getenv(
         "DATABASE_URL",
         "mysql+mysqlconnector://root:Lolita1!@localhost/library_db",

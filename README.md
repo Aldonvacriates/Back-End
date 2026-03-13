@@ -1,6 +1,6 @@
 # My-Library API
 
-Flask backend for a simple library management API using the app factory pattern, SQLAlchemy, Marshmallow, JWT authentication, and Redis-backed rate limiting with Flask-Limiter.
+Flask backend for a simple library management API using the app factory pattern, SQLAlchemy, Marshmallow, JWT authentication, rate limiting with Flask-Limiter, and response caching with Flask-Caching.
 
 ## Features
 
@@ -10,6 +10,7 @@ Flask backend for a simple library management API using the app factory pattern,
 - Marshmallow request validation and serialization
 - JWT login and refresh endpoints
 - Redis-backed shared rate limiting
+- Cached read endpoints with invalidation on writes
 - JSON `429` responses when rate limits are exceeded
 
 ## Tech Stack
@@ -19,6 +20,7 @@ Flask backend for a simple library management API using the app factory pattern,
 - Flask-SQLAlchemy
 - Marshmallow / Flask-Marshmallow
 - Flask-JWT-Extended
+- Flask-Caching
 - Flask-Limiter
 - Redis
 - MySQL
@@ -91,6 +93,8 @@ The app supports `DevelopmentConfig`, `TestingConfig`, and `ProductionConfig` fr
 | `JWT_SECRET_KEY` | Yes | Secret used to sign JWTs. Use a strong value in production. | `super-long-random-secret-at-least-32-bytes` |
 | `REDIS_URL` | Recommended | Redis connection string used by the rate limiter | `redis://localhost:6379/0` |
 | `RATELIMIT_STORAGE_URI` | Optional | Explicit Flask-Limiter storage URI. Overrides `REDIS_URL` if set. | `redis://localhost:6379/1` |
+| `CACHE_TYPE` | Optional | Cache backend. Development defaults to `SimpleCache`, production defaults to `RedisCache`. | `RedisCache` |
+| `CACHE_REDIS_URL` | Optional | Redis connection string for Flask-Caching when using `RedisCache` | `redis://localhost:6379/1` |
 | `TEST_DATABASE_URL` | Optional | Database URL for `TestingConfig` | `sqlite+pysqlite:///:memory:` |
 
 ### Default Rate Limit Settings
@@ -129,6 +133,21 @@ Example `429` response:
   }
 }
 ```
+
+## Caching
+
+Caching is configured in `app/extensions.py` with Flask-Caching.
+
+- `DevelopmentConfig` and `TestingConfig` use `SimpleCache`
+- `ProductionConfig` uses `RedisCache` by default
+- Cached GET routes are invalidated after create, update, and delete operations
+- Current cached endpoints are:
+  - `GET /books/`
+  - `GET /books/<book_id>`
+  - `GET /members/`
+  - `GET /members/<member_id>`
+  - `GET /loans/`
+  - `GET /loans/<loan_id>`
 
 ## Authentication
 
@@ -362,6 +381,7 @@ Marshmallow returns field-level validation messages:
 
 - `app.py` calls `db.create_all()` automatically on startup
 - `TestingConfig` uses in-memory SQLite and `memory://` rate-limit storage
+- `TestingConfig` also uses `SimpleCache`
 - `My-Library.postman_collection.json` can be used for API testing
 - Passwords are hidden from serialized member responses
 
@@ -370,5 +390,6 @@ Marshmallow returns field-level validation messages:
 - Replace the default `JWT_SECRET_KEY`
 - Use a real MySQL database and a reachable Redis instance
 - In-memory fallback is enabled for development and testing only; production should keep Redis available
+- Production caching defaults to Redis through `CACHE_REDIS_URL`
 - Do not rely on `db.create_all()` for schema changes in a production workflow; use migrations
 - Add `@jwt_required()` to resource routes if you want JWT protection across the API

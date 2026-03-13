@@ -1,7 +1,7 @@
 from flask import Flask, jsonify
 from flask_limiter.errors import RateLimitExceeded
 
-from .extensions import jwt, limiter, ma
+from .extensions import cache, jwt, limiter, ma
 from .models import db
 from .blueprints.auth import auth_bp
 from .blueprints.members import members_bp
@@ -18,6 +18,7 @@ def create_app(config_name="DevelopmentConfig"):
     db.init_app(app)  # adding our db extension to our app
     jwt.init_app(app)  # adding our jwt extension to our app
     limiter.init_app(app)  # adding our limiter extension to our app
+    cache.init_app(app)  # adding our cache extension to our app
 
     @app.errorhandler(RateLimitExceeded)
     def handle_rate_limit(error):

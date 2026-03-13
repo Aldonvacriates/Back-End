@@ -16,7 +16,21 @@ from app.models import Member, db
 from . import members_bp
 from .schemas import member_schema, members_schema
 
-from app.extensions import limiter
+from app.extensions import cache, limiter
+
+
+def _members_list_cache_key():
+    return "members:list"
+
+
+def _member_detail_cache_key():
+    return f"members:detail:{request.view_args['member_id']}"
+
+
+def _invalidate_member_cache(member_id=None):
+    cache.delete(_members_list_cache_key())
+    if member_id is not None:
+        cache.delete(f"members:detail:{member_id}")
 
 # ---------------------------------------------------
 # CREATE MEMBER
@@ -59,6 +73,7 @@ def create_member():
 
     # Commit transaction to permanently save the record
     db.session.commit()
+    _invalidate_member_cache(new_member.id)
 
     # Return the created member as JSON
     return jsonify(member_schema.dump(new_member)), 201
@@ -71,6 +86,7 @@ def create_member():
 # Returns a list of all members
 @members_bp.route("/", methods=["GET"])
 @limiter.limit(lambda: current_app.config["HEAVY_READ_RATE_LIMIT"])
+@cache.cached(timeout=60, key_prefix=_members_list_cache_key)
 def get_members():
 
     # Create query to select all members
@@ -89,6 +105,7 @@ def get_members():
 # Endpoint: GET /members/<member_id>
 # Returns a single member by ID
 @members_bp.route("/<int:member_id>", methods=["GET"])
+@cache.cached(timeout=60, key_prefix=_member_detail_cache_key)
 def get_member(member_id):
 
     # Retrieve member by primary key
@@ -157,6 +174,7 @@ def update_member(member_id):
 
     # Save changes to database
     db.session.commit()
+    _invalidate_member_cache(member.id)
 
     # Return updated member
     return jsonify(member_schema.dump(member)), 200
@@ -182,6 +200,7 @@ def delete_member(member_id):
 
     # Commit deletion
     db.session.commit()
+    _invalidate_member_cache(member_id)
 
     # Return confirmation message
     return jsonify({"message": f"Member id: {member_id}, deleted successfully."}), 200

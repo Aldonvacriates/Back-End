@@ -2,11 +2,25 @@ from flask import current_app, jsonify, request
 from marshmallow import ValidationError
 from sqlalchemy import or_, select
 
-from app.extensions import limiter
+from app.extensions import cache, limiter
 from app.models import Book, db
 
 from . import books_bp
 from .schemas import book_schema, books_schema
+
+
+def _books_list_cache_key():
+    return "books:list"
+
+
+def _book_detail_cache_key():
+    return f"books:detail:{request.view_args['book_id']}"
+
+
+def _invalidate_book_cache(book_id=None):
+    cache.delete(_books_list_cache_key())
+    if book_id is not None:
+        cache.delete(f"books:detail:{book_id}")
 
 
 @books_bp.route("/", methods=["POST"])
@@ -23,12 +37,14 @@ def create_book():
     new_book = Book(**book_data)
     db.session.add(new_book)
     db.session.commit()
+    _invalidate_book_cache(new_book.id)
 
     return jsonify(book_schema.dump(new_book)), 201
 
 
 @books_bp.route("/", methods=["GET"])
 @limiter.limit(lambda: current_app.config["HEAVY_READ_RATE_LIMIT"])
+@cache.cached(timeout=60, key_prefix=_books_list_cache_key)
 def get_books():
     query = select(Book)
     books = db.session.execute(query).scalars().all()
@@ -61,6 +77,7 @@ def search_books():
 
 
 @books_bp.route("/<int:book_id>", methods=["GET"])
+@cache.cached(timeout=60, key_prefix=_book_detail_cache_key)
 def get_book(book_id):
     book = db.session.get(Book, book_id)
 
@@ -90,6 +107,7 @@ def update_book(book_id):
         setattr(book, key, value)
 
     db.session.commit()
+    _invalidate_book_cache(book.id)
     return jsonify(book_schema.dump(book)), 200
 
 
@@ -102,5 +120,6 @@ def delete_book(book_id):
 
     db.session.delete(book)
     db.session.commit()
+    _invalidate_book_cache(book_id)
 
     return jsonify({"message": f"Book id: {book_id}, deleted successfully."}), 200
