@@ -8,6 +8,7 @@ from app.models import Member
 class MemberSchema(ma.SQLAlchemyAutoSchema):
     class Meta:
         model = Member  ##using the SQLAlchemy model to create fields used in serialization, deserialization, and validation
+        load_only = ("password",)
 
 
 member_schema = MemberSchema()

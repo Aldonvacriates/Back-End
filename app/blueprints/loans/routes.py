@@ -1,7 +1,8 @@
-from flask import jsonify, request
+from flask import current_app, jsonify, request
 from marshmallow import ValidationError
 from sqlalchemy import select
 
+from app.extensions import limiter
 from app.models import Book, Loan, Member, db
 
 from . import loans_bp
@@ -25,7 +26,7 @@ def _get_books_from_ids(book_ids):
 
 @loans_bp.route("/", methods=["POST"])
 def create_loan():
-    data = request.get_json()
+    data = request.get_json(silent=True)
     if not data:
         return jsonify({"error": "Request body must be valid JSON."}), 400
 
@@ -54,6 +55,7 @@ def create_loan():
 
 
 @loans_bp.route("/", methods=["GET"])
+@limiter.limit(lambda: current_app.config["HEAVY_READ_RATE_LIMIT"])
 def get_loans():
     query = select(Loan)
     loans = db.session.execute(query).scalars().all()
@@ -77,7 +79,7 @@ def update_loan(loan_id):
     if not loan:
         return jsonify({"error": "Loan not found."}), 404
 
-    data = request.get_json()
+    data = request.get_json(silent=True)
     if not data:
         return jsonify({"error": "Request body must be valid JSON."}), 400
 

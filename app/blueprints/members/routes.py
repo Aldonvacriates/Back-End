@@ -1,12 +1,13 @@
 # Import request object to read incoming HTTP data
 # jsonify is used to return JSON responses
-from flask import request, jsonify
+from flask import current_app, jsonify, request
 
 # ValidationError is raised when Marshmallow validation fails
 from marshmallow import ValidationError
 
 # SQLAlchemy select query helper
 from sqlalchemy import select
+from werkzeug.security import generate_password_hash
 
 # Import Member model and database instance
 from app.models import Member, db
@@ -26,7 +27,7 @@ from app.extensions import limiter
 def create_member():
 
     # Get JSON data sent in the request body
-    data = request.get_json()
+    data = request.get_json(silent=True)
 
     # Validate that the request contains JSON
     if not data:
@@ -48,6 +49,8 @@ def create_member():
     if existing_member:
         return jsonify({"error": "Email already associated with an account."}), 400
 
+    member_data["password"] = generate_password_hash(member_data["password"])
+
     # Create a new Member object using the validated data
     new_member = Member(**member_data)
 
@@ -67,7 +70,7 @@ def create_member():
 # Endpoint: GET /members
 # Returns a list of all members
 @members_bp.route("/", methods=["GET"])
-@limiter.limit("3 per hour") # Apply rate limit to this endpoint
+@limiter.limit(lambda: current_app.config["HEAVY_READ_RATE_LIMIT"])
 def get_members():
 
     # Create query to select all members
@@ -105,7 +108,6 @@ def get_member(member_id):
 # Endpoint: PUT /members/<member_id>
 # Updates an existing member
 @members_bp.route("/<int:member_id>", methods=["PUT"])
-@limiter.limit("3 per hour") # Apply rate limit to this endpoint
 def update_member(member_id):
 
     # Retrieve member from database
@@ -116,7 +118,7 @@ def update_member(member_id):
         return jsonify({"error": "Member not found."}), 404
 
     # Get JSON request body
-    data = request.get_json()
+    data = request.get_json(silent=True)
 
     # Validate request body
     if not data:
@@ -147,6 +149,9 @@ def update_member(member_id):
             )
 
     # Update each field dynamically
+    if "password" in member_data:
+        member_data["password"] = generate_password_hash(member_data["password"])
+
     for key, value in member_data.items():
         setattr(member, key, value)
 

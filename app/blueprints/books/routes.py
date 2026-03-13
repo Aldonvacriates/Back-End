@@ -1,7 +1,8 @@
-from flask import jsonify, request
+from flask import current_app, jsonify, request
 from marshmallow import ValidationError
-from sqlalchemy import select
+from sqlalchemy import or_, select
 
+from app.extensions import limiter
 from app.models import Book, db
 
 from . import books_bp
@@ -10,7 +11,7 @@ from .schemas import book_schema, books_schema
 
 @books_bp.route("/", methods=["POST"])
 def create_book():
-    data = request.get_json()
+    data = request.get_json(silent=True)
     if not data:
         return jsonify({"error": "Request body must be valid JSON."}), 400
 
@@ -27,9 +28,35 @@ def create_book():
 
 
 @books_bp.route("/", methods=["GET"])
+@limiter.limit(lambda: current_app.config["HEAVY_READ_RATE_LIMIT"])
 def get_books():
     query = select(Book)
     books = db.session.execute(query).scalars().all()
+    return jsonify(books_schema.dump(books)), 200
+
+
+@books_bp.route("/search", methods=["GET"])
+@limiter.limit(lambda: current_app.config["SEARCH_RATE_LIMIT"])
+def search_books():
+    search_term = request.args.get("q", "").strip()
+    if not search_term:
+        return jsonify({"error": "Query parameter 'q' is required."}), 400
+
+    wildcard = f"%{search_term}%"
+    query = (
+        select(Book)
+        .where(
+            or_(
+                Book.title.ilike(wildcard),
+                Book.author.ilike(wildcard),
+                Book.genre.ilike(wildcard),
+                Book.desc.ilike(wildcard),
+            )
+        )
+        .limit(50)
+    )
+    books = db.session.execute(query).scalars().all()
+
     return jsonify(books_schema.dump(books)), 200
 
 
@@ -50,7 +77,7 @@ def update_book(book_id):
     if not book:
         return jsonify({"error": "Book not found."}), 404
 
-    data = request.get_json()
+    data = request.get_json(silent=True)
     if not data:
         return jsonify({"error": "Request body must be valid JSON."}), 400
 
