@@ -18,6 +18,7 @@ class BaseConfig:
     RATELIMIT_HEADERS_ENABLED = True
     RATELIMIT_DEFAULT = "200 per day, 50 per hour"
     RATELIMIT_APPLICATION = "1000 per hour"
+    RATELIMIT_IN_MEMORY_FALLBACK = "200 per day, 50 per hour"
     AUTH_LOGIN_RATE_LIMIT = "5 per minute"
     AUTH_REFRESH_RATE_LIMIT = "10 per minute"
     HEAVY_READ_RATE_LIMIT = "20 per minute"
@@ -30,12 +31,14 @@ class DevelopmentConfig(BaseConfig):
         "mysql+mysqlconnector://root:Lolita1!@localhost/library_db",
     )
     DEBUG = True
+    RATELIMIT_IN_MEMORY_FALLBACK_ENABLED = True
 
 
 class TestingConfig(BaseConfig):
     SQLALCHEMY_DATABASE_URI = os.getenv("TEST_DATABASE_URL", "sqlite+pysqlite:///:memory:")
     RATELIMIT_STORAGE_URI = "memory://"
     TESTING = True
+    RATELIMIT_IN_MEMORY_FALLBACK_ENABLED = True
 
 
 class ProductionConfig(BaseConfig):

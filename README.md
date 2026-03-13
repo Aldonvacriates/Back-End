@@ -99,6 +99,7 @@ These values currently come from `config.py`:
 
 - Global default limits: `200 per day, 50 per hour`
 - Application-wide limit: `1000 per hour`
+- In-memory fallback limits: `200 per day, 50 per hour`
 - Auth login limit: `5 per minute`
 - Auth refresh limit: `10 per minute`
 - Heavy read endpoints: `20 per minute`
@@ -111,6 +112,7 @@ Rate limiting is configured in `app/extensions.py` with Flask-Limiter and Redis 
 - Authenticated requests are keyed by JWT identity: `user:<id>`
 - Anonymous requests fall back to IP address: `ip:<remote_addr>`
 - Rate limit headers are enabled
+- `DevelopmentConfig` and `TestingConfig` automatically fall back to in-memory storage if Redis is unavailable
 - Limit breaches return JSON instead of HTML
 
 Example `429` response:
@@ -367,5 +369,6 @@ Marshmallow returns field-level validation messages:
 
 - Replace the default `JWT_SECRET_KEY`
 - Use a real MySQL database and a reachable Redis instance
+- In-memory fallback is enabled for development and testing only; production should keep Redis available
 - Do not rely on `db.create_all()` for schema changes in a production workflow; use migrations
 - Add `@jwt_required()` to resource routes if you want JWT protection across the API
